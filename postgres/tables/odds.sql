@@ -1,6 +1,6 @@
 BEGIN TRANSACTION;
 
-CREATE TABLE sites (
+CREATE TABLE odds (
   id serial PRIMARY KEY,
   site_key text NOT NULL,
   site_nice text NOT NULL,

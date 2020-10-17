@@ -4,10 +4,11 @@ services:
   # Backend
   bet-me:
     build: ./
-    command: npm run dev
+    command: npm start
     environment:
       POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       ODDS_API_KEY: ${ODDS_API_KEY}
+      REDIS_URI: redis://redis:6379
     working_dir: /usr/src/bet-me
     ports:
       - '3000:3000'
@@ -23,3 +24,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+
+  # Redis
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'

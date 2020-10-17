@@ -1,10 +1,13 @@
 const axios = require('axios');
+const redis = require('redis')
+
+const redisClient = redis.createClient(process.env.REDIS_URI);
 
 const url = `https://api.the-odds-api.com/v3/odds/?sport=upcoming&region=uk&mkt=h2h&dateFormat=iso&apiKey=${process.env.ODDS_API_KEY}`;
 
-const addSitesToDB = async (sites, fixture_id, db) => {
+const addOddsToDB = async (odds, fixture_id, db) => {
   return await Promise.all(
-    sites.map(
+    odds.map(
       async ({
         site_key,
         site_nice,
@@ -25,7 +28,7 @@ const addSitesToDB = async (sites, fixture_id, db) => {
               draw,
               fixture_id,
             })
-            .into('sites');
+            .into('odds');
           await trx.commit();
         } catch (error) {
           console.error(error);
@@ -46,25 +49,44 @@ const addFixturesToDB = async (data, db) => {
         commence_time,
         sites,
       }) => {
-        try {
-          const trx = await db.transaction();
-          const [fixture_id] = await trx
-            .insert({
-              sport_key,
-              sport_nice,
-              team1,
-              team2,
-              home_team,
-              commence_time,
-            })
-            .into('fixtures')
-            .returning('id');
-          await trx.commit();
-
-          await addSitesToDB(sites, fixture_id, db);
-        } catch (error) {
-          console.error(error);
-        }
+        redisClient.hset('odds', `${team1}|${team2}`, JSON.stringify({
+          sport_key,
+          sport_nice,
+          team1,
+          team2,
+          home_team,
+          commence_time,
+          odds: sites.map(({ site_key, site_nice, last_update, odds: { h2h: [team1win, team2win, draw] } }) => {
+            return {
+              site_key,
+              site_nice,
+              last_update,
+              team1win,
+              team2win,
+              draw
+            }
+          })
+        }), () => {
+          try {
+            const trx = await db.transaction();
+            const [fixture_id] = await trx
+              .insert({
+                sport_key,
+                sport_nice,
+                team1,
+                team2,
+                home_team,
+                commence_time,
+              })
+              .into('fixtures')
+              .returning('id');
+            await trx.commit();
+  
+            await addOddsToDB(sites, fixture_id, db);
+          } catch (error) {
+            console.error(error);
+          }
+        });
       }
     )
   );
@@ -78,14 +100,6 @@ const getOdds = async (db) => {
   await addFixturesToDB(data, db);
   console.log('All sites and fixtures added.');
 };
-
-// const updateOdds = async (db) => {
-//   const {
-//     data: { data },
-//   } = await axios.get(url);
-
-//   console.log('Sites updated');
-// }
 
 module.exports = {
   getOdds,
