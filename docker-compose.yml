@@ -1,0 +1,25 @@
+version: '3.6'
+
+services:
+  # Backend
+  bet-me:
+    build: ./
+    command: npm run dev
+    environment:
+      POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ODDS_API_KEY: ${ODDS_API_KEY}
+    working_dir: /usr/src/bet-me
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./:/usr/src/bet-me
+
+  # Postgres
+  postgres:
+    build: ./postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
