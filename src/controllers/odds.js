@@ -117,4 +117,6 @@ const getOdds = async (db) => {
 
 module.exports = {
   getOdds,
+  addFixturesToDB,
+  addOddsToDB,
 };
